@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 )
 
 func badRequest(writer http.ResponseWriter, msg string) {
@@ -70,6 +71,7 @@ func AppVersion() {
 
 func makeRouter() *mux.Router {
 	router := mux.NewRouter()
+	router.Use(otelmux.Middleware("user-info"))
 	router.Handle("/debug/vars", http.DefaultServeMux)
 	router.HandleFunc("/", func(writer http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(writer, "Hello from user-info.\n")

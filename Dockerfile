@@ -1,11 +1,13 @@
-FROM golang:1.15-alpine
+FROM golang:1.17
 
-RUN apk add --no-cache git
-RUN go get -u github.com/jstemmer/go-junit-report
+WORKDIR /build
 
-COPY . /go/src/github.com/cyverse-de/user-info
+COPY . .
 ENV CGO_ENABLED=0
-RUN go install -v github.com/cyverse-de/user-info
+ENV GOOS=linux
+ENV GOARCH=amd64
+
+RUN go install -v ./...
 
 ENTRYPOINT ["user-info"]
 CMD ["--help"]

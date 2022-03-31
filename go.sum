@@ -17,6 +17,8 @@ github.com/cyverse-de/queries v0.0.0-20160412214440-1a09c989c99d h1:ctw5y3ycfdgw
 github.com/cyverse-de/queries v0.0.0-20160412214440-1a09c989c99d/go.mod h1:YVclxEOFHTv0ZnVuJGiWh286GrxesamshwikcifVehA=
 github.com/cyverse-de/queries v1.0.0 h1:PD882YqRpGKDnCpKMy5BQAzV3+WV9ML/IrDi0+U7rXE=
 github.com/cyverse-de/queries v1.0.0/go.mod h1:AzLmCqSmI9iGqiWJi5tzsif2UHIAr3wrleDgQRhmDZk=
+github.com/cyverse-de/queries v1.0.1 h1:xODyzr9I0SMlcMAqSLiXSHn5xqzOoAJXCwILlmOuRHE=
+github.com/cyverse-de/queries v1.0.1/go.mod h1:AzLmCqSmI9iGqiWJi5tzsif2UHIAr3wrleDgQRhmDZk=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

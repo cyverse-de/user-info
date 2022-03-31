@@ -7,7 +7,7 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.3.0
 	github.com/cyverse-de/configurate v0.0.0-20171005230251-9b512d37328e
 	github.com/cyverse-de/dbutil v1.0.1
-	github.com/cyverse-de/queries v1.0.0
+	github.com/cyverse-de/queries v1.0.1
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/hcl v0.0.0-20171017181929-23c074d0eceb // indirect
 	github.com/lib/pq v1.10.4

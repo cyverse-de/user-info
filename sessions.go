@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -36,8 +37,8 @@ func (u *UserSessionsApp) Greeting(writer http.ResponseWriter, r *http.Request) 
 	fmt.Fprintf(writer, "Hello from user-sessions.\n")
 }
 
-func (u *UserSessionsApp) getUserSessionForRequest(username string, wrap bool) ([]byte, error) {
-	sessions, err := u.sessions.getSessions(username)
+func (u *UserSessionsApp) getUserSessionForRequest(ctx context.Context, username string, wrap bool) ([]byte, error) {
+	sessions, err := u.sessions.getSessions(ctx, username)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting sessions for username %s: %s", username, err)
 	}
@@ -73,6 +74,7 @@ func (u *UserSessionsApp) GetRequest(writer http.ResponseWriter, r *http.Request
 		err        error
 		ok         bool
 		v          = mux.Vars(r)
+		ctx        = r.Context()
 	)
 
 	if username, ok = v["username"]; !ok {
@@ -83,7 +85,7 @@ func (u *UserSessionsApp) GetRequest(writer http.ResponseWriter, r *http.Request
 	log.WithFields(log.Fields{
 		"service": "sessions",
 	}).Info("Getting user session for ", username)
-	if userExists, err = u.sessions.isUser(username); err != nil {
+	if userExists, err = u.sessions.isUser(ctx, username); err != nil {
 		badRequest(writer, fmt.Sprintf("Error checking for username %s: %s", username, err))
 		return
 	}
@@ -93,7 +95,7 @@ func (u *UserSessionsApp) GetRequest(writer http.ResponseWriter, r *http.Request
 		return
 	}
 
-	jsoned, err := u.getUserSessionForRequest(username, false)
+	jsoned, err := u.getUserSessionForRequest(ctx, username, false)
 	if err != nil {
 		errored(writer, err.Error())
 	}
@@ -115,6 +117,7 @@ func (u *UserSessionsApp) PostRequest(writer http.ResponseWriter, r *http.Reques
 		err        error
 		ok         bool
 		v          = mux.Vars(r)
+		ctx        = r.Context()
 	)
 
 	if username, ok = v["username"]; !ok {
@@ -122,7 +125,7 @@ func (u *UserSessionsApp) PostRequest(writer http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if userExists, err = u.sessions.isUser(username); err != nil {
+	if userExists, err = u.sessions.isUser(ctx, username); err != nil {
 		badRequest(writer, fmt.Sprintf("Error checking for username %s: %s", username, err))
 		return
 	}
@@ -132,7 +135,7 @@ func (u *UserSessionsApp) PostRequest(writer http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if hasSession, err = u.sessions.hasSessions(username); err != nil {
+	if hasSession, err = u.sessions.hasSessions(ctx, username); err != nil {
 		errored(writer, fmt.Sprintf("Error checking session for user %s: %s", username, err))
 		return
 	}
@@ -151,18 +154,18 @@ func (u *UserSessionsApp) PostRequest(writer http.ResponseWriter, r *http.Reques
 
 	bodyString := string(bodyBuffer)
 	if !hasSession {
-		if err = u.sessions.insertSession(username, bodyString); err != nil {
+		if err = u.sessions.insertSession(ctx, username, bodyString); err != nil {
 			errored(writer, fmt.Sprintf("Error inserting session for user %s: %s", username, err))
 			return
 		}
 	} else {
-		if err = u.sessions.updateSession(username, bodyString); err != nil {
+		if err = u.sessions.updateSession(ctx, username, bodyString); err != nil {
 			errored(writer, fmt.Sprintf("Error updating session for user %s: %s", username, err))
 			return
 		}
 	}
 
-	jsoned, err := u.getUserSessionForRequest(username, true)
+	jsoned, err := u.getUserSessionForRequest(ctx, username, true)
 	if err != nil {
 		errored(writer, err.Error())
 		return
@@ -180,6 +183,7 @@ func (u *UserSessionsApp) DeleteRequest(writer http.ResponseWriter, r *http.Requ
 		err        error
 		ok         bool
 		v          = mux.Vars(r)
+		ctx        = r.Context()
 	)
 
 	if username, ok = v["username"]; !ok {
@@ -187,7 +191,7 @@ func (u *UserSessionsApp) DeleteRequest(writer http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if userExists, err = u.sessions.isUser(username); err != nil {
+	if userExists, err = u.sessions.isUser(ctx, username); err != nil {
 		badRequest(writer, fmt.Sprintf("Error checking for username %s: %s", username, err))
 		return
 	}
@@ -197,7 +201,7 @@ func (u *UserSessionsApp) DeleteRequest(writer http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if hasSession, err = u.sessions.hasSessions(username); err != nil {
+	if hasSession, err = u.sessions.hasSessions(ctx, username); err != nil {
 		errored(writer, fmt.Sprintf("Error checking session for user %s: %s", username, err))
 		return
 	}
@@ -206,7 +210,7 @@ func (u *UserSessionsApp) DeleteRequest(writer http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err = u.sessions.deleteSession(username); err != nil {
+	if err = u.sessions.deleteSession(ctx, username); err != nil {
 		errored(writer, fmt.Sprintf("Error deleting session for user %s: %s", username, err))
 	}
 }

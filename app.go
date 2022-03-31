@@ -71,7 +71,7 @@ func AppVersion() {
 
 func makeRouter() *mux.Router {
 	router := mux.NewRouter()
-	router.Use(otelmux.Middleware("user-info"))
+	router.Use(otelmux.Middleware(serviceName))
 	router.Handle("/debug/vars", http.DefaultServeMux)
 	router.HandleFunc("/", func(writer http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(writer, "Hello from user-info.\n")

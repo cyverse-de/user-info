@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -45,6 +46,7 @@ func (s *SavedSearchesApp) GetRequest(writer http.ResponseWriter, r *http.Reques
 		ok         bool
 		searches   []string
 		v          = mux.Vars(r)
+		ctx        = r.Context()
 	)
 
 	if username, ok = v["username"]; !ok {
@@ -52,7 +54,7 @@ func (s *SavedSearchesApp) GetRequest(writer http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if userExists, err = s.searches.isUser(username); err != nil {
+	if userExists, err = s.searches.isUser(ctx, username); err != nil {
 		badRequest(writer, fmt.Sprintf("Error checking for username %s: %s", username, err))
 		return
 	}
@@ -62,7 +64,7 @@ func (s *SavedSearchesApp) GetRequest(writer http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if searches, err = s.searches.getSavedSearches(username); err != nil {
+	if searches, err = s.searches.getSavedSearches(ctx, username); err != nil {
 		errored(writer, err.Error())
 		return
 	}
@@ -89,6 +91,7 @@ func (s *SavedSearchesApp) PostRequest(writer http.ResponseWriter, r *http.Reque
 		err         error
 		ok          bool
 		v           = mux.Vars(r)
+		ctx         = r.Context()
 	)
 
 	if username, ok = v["username"]; !ok {
@@ -111,7 +114,7 @@ func (s *SavedSearchesApp) PostRequest(writer http.ResponseWriter, r *http.Reque
 
 	bodyString := string(bodyBuffer)
 
-	if userExists, err = s.searches.isUser(username); err != nil {
+	if userExists, err = s.searches.isUser(ctx, username); err != nil {
 		badRequest(writer, fmt.Sprintf("Error checking for username %s: %s", username, err))
 		return
 	}
@@ -121,18 +124,18 @@ func (s *SavedSearchesApp) PostRequest(writer http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if hasSearches, err = s.searches.hasSavedSearches(username); err != nil {
+	if hasSearches, err = s.searches.hasSavedSearches(ctx, username); err != nil {
 		errored(writer, err.Error())
 		return
 	}
 
-	var upsert func(string, string) error
+	var upsert func(context.Context, string, string) error
 	if hasSearches {
 		upsert = s.searches.updateSavedSearches
 	} else {
 		upsert = s.searches.insertSavedSearches
 	}
-	if err = upsert(username, bodyString); err != nil {
+	if err = upsert(ctx, username, bodyString); err != nil {
 		errored(writer, err.Error())
 		return
 	}
@@ -157,6 +160,7 @@ func (s *SavedSearchesApp) DeleteRequest(writer http.ResponseWriter, r *http.Req
 		userExists bool
 		username   string
 		v          = mux.Vars(r)
+		ctx        = r.Context()
 	)
 
 	if username, ok = v["username"]; !ok {
@@ -164,7 +168,7 @@ func (s *SavedSearchesApp) DeleteRequest(writer http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if userExists, err = s.searches.isUser(username); err != nil {
+	if userExists, err = s.searches.isUser(ctx, username); err != nil {
 		badRequest(writer, fmt.Sprintf("Error checking for username %s: %s", username, err))
 		return
 	}
@@ -173,7 +177,7 @@ func (s *SavedSearchesApp) DeleteRequest(writer http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if err = s.searches.deleteSavedSearches(username); err != nil {
+	if err = s.searches.deleteSavedSearches(ctx, username); err != nil {
 		errored(writer, err.Error())
 	}
 }

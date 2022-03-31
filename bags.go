@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -61,7 +62,7 @@ func (b *BagsApp) Greeting(writer http.ResponseWriter, request *http.Request) {
 	fmt.Fprintf(writer, "Hello from the bags handler")
 }
 
-func (b *BagsApp) getUser(vars map[string]string) (string, int, error) {
+func (b *BagsApp) getUser(ctx context.Context, vars map[string]string) (string, int, error) {
 	var (
 		username       string
 		err            error
@@ -73,7 +74,7 @@ func (b *BagsApp) getUser(vars map[string]string) (string, int, error) {
 
 	username = b.AddUsernameSuffix(username)
 
-	if userExists, err = queries.IsUser(b.api.db, username); err != nil {
+	if userExists, err = queries.IsUser(ctx, b.api.db, username); err != nil {
 		return "", http.StatusInternalServerError, fmt.Errorf("error checking for bags %s: %s", username, err)
 	}
 
@@ -92,14 +93,15 @@ func (b *BagsApp) GetBags(writer http.ResponseWriter, request *http.Request) {
 		err      error
 		status   int
 		vars     = mux.Vars(request)
+		ctx      = request.Context()
 	)
 
-	if username, status, err = b.getUser(vars); err != nil {
+	if username, status, err = b.getUser(ctx, vars); err != nil {
 		http.Error(writer, err.Error(), status)
 		return
 	}
 
-	if bags, err = b.api.GetBags(username); err != nil {
+	if bags, err = b.api.GetBags(ctx, username); err != nil {
 		http.Error(writer, fmt.Sprintf("error getting bags for %s: %s", username, err), http.StatusInternalServerError)
 		return
 	}
@@ -126,9 +128,10 @@ func (b *BagsApp) GetBag(writer http.ResponseWriter, request *http.Request) {
 		status          int
 		vars            = mux.Vars(request)
 		jsonBytes       []byte
+		ctx             = request.Context()
 	)
 
-	if username, status, err = b.getUser(vars); err != nil {
+	if username, status, err = b.getUser(ctx, vars); err != nil {
 		http.Error(writer, err.Error(), status)
 	}
 
@@ -137,7 +140,7 @@ func (b *BagsApp) GetBag(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if ok, err = b.api.HasBag(username, bagID); err != nil {
+	if ok, err = b.api.HasBag(ctx, username, bagID); err != nil {
 		badRequest(writer, fmt.Sprintf("error checking database for bag %s for %s: %s", bagID, username, err))
 		return
 	}
@@ -147,7 +150,7 @@ func (b *BagsApp) GetBag(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if bag, err = b.api.GetBag(username, bagID); err != nil {
+	if bag, err = b.api.GetBag(ctx, username, bagID); err != nil {
 		http.Error(writer, fmt.Sprintf("error getting bags for %s: %s", username, err), http.StatusInternalServerError)
 		return
 	}
@@ -173,13 +176,14 @@ func (b *BagsApp) GetDefaultBag(writer http.ResponseWriter, request *http.Reques
 		status    int
 		jsonBytes []byte
 		vars      = mux.Vars(request)
+		ctx       = request.Context()
 	)
 
-	if username, status, err = b.getUser(vars); err != nil {
+	if username, status, err = b.getUser(ctx, vars); err != nil {
 		http.Error(writer, err.Error(), status)
 	}
 
-	if bag, err = b.api.GetDefaultBag(username); err != nil {
+	if bag, err = b.api.GetDefaultBag(ctx, username); err != nil {
 		http.Error(writer, fmt.Sprintf("error getting default bag for %s: %s", username, err), http.StatusInternalServerError)
 		return
 	}
@@ -205,9 +209,10 @@ func (b *BagsApp) AddBag(writer http.ResponseWriter, request *http.Request) {
 		retval          []byte
 		status          int
 		vars            = mux.Vars(request)
+		ctx             = request.Context()
 	)
 
-	if username, status, err = b.getUser(vars); err != nil {
+	if username, status, err = b.getUser(ctx, vars); err != nil {
 		http.Error(writer, err.Error(), status)
 	}
 
@@ -221,7 +226,7 @@ func (b *BagsApp) AddBag(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if bagID, err = b.api.AddBag(username, string(body)); err != nil {
+	if bagID, err = b.api.AddBag(ctx, username, string(body)); err != nil {
 		errored(writer, fmt.Sprintf("failed to add bag for %s: %s", username, err))
 		return
 	}
@@ -247,9 +252,10 @@ func (b *BagsApp) UpdateBag(writer http.ResponseWriter, request *http.Request) {
 		body            []byte
 		status          int
 		vars            = mux.Vars(request)
+		ctx             = request.Context()
 	)
 
-	if username, status, err = b.getUser(vars); err != nil {
+	if username, status, err = b.getUser(ctx, vars); err != nil {
 		http.Error(writer, err.Error(), status)
 	}
 
@@ -258,7 +264,7 @@ func (b *BagsApp) UpdateBag(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if ok, err = b.api.HasBag(username, bagID); err != nil {
+	if ok, err = b.api.HasBag(ctx, username, bagID); err != nil {
 		badRequest(writer, fmt.Sprintf("error checking database for bag %s for %s: %s", bagID, username, err))
 		return
 	}
@@ -278,7 +284,7 @@ func (b *BagsApp) UpdateBag(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if err = b.api.UpdateBag(username, bagID, string(body)); err != nil {
+	if err = b.api.UpdateBag(ctx, username, bagID, string(body)); err != nil {
 		errored(writer, fmt.Sprintf("error updating bag for user %s: %s", username, err))
 		return
 	}
@@ -294,9 +300,10 @@ func (b *BagsApp) UpdateDefaultBag(writer http.ResponseWriter, request *http.Req
 		status      int
 		vars        = mux.Vars(request)
 		retval      []byte
+		ctx         = request.Context()
 	)
 
-	if username, status, err = b.getUser(vars); err != nil {
+	if username, status, err = b.getUser(ctx, vars); err != nil {
 		http.Error(writer, err.Error(), status)
 	}
 
@@ -310,12 +317,12 @@ func (b *BagsApp) UpdateDefaultBag(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	if err = b.api.UpdateDefaultBag(username, string(body)); err != nil {
+	if err = b.api.UpdateDefaultBag(ctx, username, string(body)); err != nil {
 		errored(writer, fmt.Sprintf("error updating default bag for user %s: %s", username, err))
 		return
 	}
 
-	if newBag, err = b.api.GetDefaultBag(username); err != nil {
+	if newBag, err = b.api.GetDefaultBag(ctx, username); err != nil {
 		errored(writer, fmt.Sprintf("error getting new bag value for user %s: %s", username, err))
 		return
 	}
@@ -339,9 +346,10 @@ func (b *BagsApp) DeleteBag(writer http.ResponseWriter, request *http.Request) {
 		ok              bool
 		status          int
 		vars            = mux.Vars(request)
+		ctx             = request.Context()
 	)
 
-	if username, status, err = b.getUser(vars); err != nil {
+	if username, status, err = b.getUser(ctx, vars); err != nil {
 		http.Error(writer, err.Error(), status)
 	}
 
@@ -350,7 +358,7 @@ func (b *BagsApp) DeleteBag(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if err = b.api.DeleteBag(username, bagID); err != nil {
+	if err = b.api.DeleteBag(ctx, username, bagID); err != nil {
 		errored(writer, fmt.Sprintf("error deleting bag for user %s: %s", username, err))
 		return
 	}
@@ -365,18 +373,19 @@ func (b *BagsApp) DeleteDefaultBag(writer http.ResponseWriter, request *http.Req
 		vars     = mux.Vars(request)
 		newBag   BagRecord
 		retval   []byte
+		ctx      = request.Context()
 	)
 
-	if username, status, err = b.getUser(vars); err != nil {
+	if username, status, err = b.getUser(ctx, vars); err != nil {
 		http.Error(writer, err.Error(), status)
 	}
 
-	if err = b.api.DeleteDefaultBag(username); err != nil {
+	if err = b.api.DeleteDefaultBag(ctx, username); err != nil {
 		errored(writer, fmt.Sprintf("error deleting default bag for user %s: %s", username, err))
 		return
 	}
 
-	if newBag, err = b.api.GetDefaultBag(username); err != nil {
+	if newBag, err = b.api.GetDefaultBag(ctx, username); err != nil {
 		errored(writer, fmt.Sprintf("error getting new bag value for user %s: %s", username, err))
 		return
 	}
@@ -400,13 +409,14 @@ func (b *BagsApp) DeleteAllBags(writer http.ResponseWriter, request *http.Reques
 		err      error
 		status   int
 		vars     = mux.Vars(request)
+		ctx      = request.Context()
 	)
 
-	if username, status, err = b.getUser(vars); err != nil {
+	if username, status, err = b.getUser(ctx, vars); err != nil {
 		http.Error(writer, err.Error(), status)
 	}
 
-	if err = b.api.DeleteAllBags(username); err != nil {
+	if err = b.api.DeleteAllBags(ctx, username); err != nil {
 		errored(writer, fmt.Sprintf("error deleting bag for user %s: %s", username, err))
 		return
 	}
@@ -420,13 +430,14 @@ func (b *BagsApp) HasBags(writer http.ResponseWriter, request *http.Request) {
 		hasBags  bool
 		status   int
 		vars     = mux.Vars(request)
+		ctx      = request.Context()
 	)
 
-	if username, status, err = b.getUser(vars); err != nil {
+	if username, status, err = b.getUser(ctx, vars); err != nil {
 		http.Error(writer, err.Error(), status)
 	}
 
-	if hasBags, err = b.api.HasBags(username); err != nil {
+	if hasBags, err = b.api.HasBags(ctx, username); err != nil {
 		errored(writer, fmt.Sprintf("error looking for bags for %s: %s", username, err))
 		return
 	}

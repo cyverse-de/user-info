@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/cyverse-de/queries"
@@ -9,12 +10,12 @@ import (
 // seDB defines the interface for interacting with storage. Mostly included
 // to make unit tests easier to write.
 type seDB interface {
-	isUser(string) (bool, error)
-	hasSavedSearches(string) (bool, error)
-	getSavedSearches(string) ([]string, error)
-	insertSavedSearches(string, string) error
-	updateSavedSearches(string, string) error
-	deleteSavedSearches(string) error
+	isUser(context.Context, string) (bool, error)
+	hasSavedSearches(context.Context, string) (bool, error)
+	getSavedSearches(context.Context, string) ([]string, error)
+	insertSavedSearches(context.Context, string, string) error
+	updateSavedSearches(context.Context, string, string) error
+	deleteSavedSearches(context.Context, string) error
 }
 
 // SearchesDB implements the DB interface for interacting with the saved-searches
@@ -31,12 +32,12 @@ func NewSearchesDB(db *sql.DB) *SearchesDB {
 }
 
 // isUser returns whether or not the user exists in the saved searches database.
-func (se *SearchesDB) isUser(username string) (bool, error) {
-	return queries.IsUser(se.db, username)
+func (se *SearchesDB) isUser(ctx context.Context, username string) (bool, error) {
+	return queries.IsUser(ctx, se.db, username)
 }
 
 // hasSavedSearches returns whether or not the given user has saved searches already.
-func (se *SearchesDB) hasSavedSearches(username string) (bool, error) {
+func (se *SearchesDB) hasSavedSearches(ctx context.Context, username string) (bool, error) {
 	var (
 		err    error
 		exists bool
@@ -49,7 +50,7 @@ func (se *SearchesDB) hasSavedSearches(username string) (bool, error) {
                WHERE s.user_id = u.id
                  AND u.username = $1) AS exists`
 
-	if err = se.db.QueryRow(query, username).Scan(&exists); err != nil {
+	if err = se.db.QueryRowContext(ctx, query, username).Scan(&exists); err != nil {
 		return false, err
 	}
 
@@ -58,7 +59,7 @@ func (se *SearchesDB) hasSavedSearches(username string) (bool, error) {
 
 // getSavedSearches returns all of the saved searches associated with the
 // provided username.
-func (se *SearchesDB) getSavedSearches(username string) ([]string, error) {
+func (se *SearchesDB) getSavedSearches(ctx context.Context, username string) ([]string, error) {
 	var (
 		err    error
 		retval []string
@@ -71,7 +72,7 @@ func (se *SearchesDB) getSavedSearches(username string) ([]string, error) {
              WHERE s.user_id = u.id
                AND u.username = $1`
 
-	if rows, err = se.db.Query(query, username); err != nil {
+	if rows, err = se.db.QueryContext(ctx, query, username); err != nil {
 		return nil, err
 	}
 	defer rows.Close()
@@ -92,7 +93,7 @@ func (se *SearchesDB) getSavedSearches(username string) ([]string, error) {
 }
 
 // insertSavedSearches adds new saved searches to the database for the user.
-func (se *SearchesDB) insertSavedSearches(username, searches string) error {
+func (se *SearchesDB) insertSavedSearches(ctx context.Context, username, searches string) error {
 	var (
 		err    error
 		userID string
@@ -100,16 +101,16 @@ func (se *SearchesDB) insertSavedSearches(username, searches string) error {
 
 	query := `INSERT INTO user_saved_searches (user_id, saved_searches) VALUES ($1, $2)`
 
-	if userID, err = queries.UserID(se.db, username); err != nil {
+	if userID, err = queries.UserID(ctx, se.db, username); err != nil {
 		return err
 	}
 
-	_, err = se.db.Exec(query, userID, searches)
+	_, err = se.db.ExecContext(ctx, query, userID, searches)
 	return err
 }
 
 // updateSavedSearches updates the saved searches in the database for the user.
-func (se *SearchesDB) updateSavedSearches(username, searches string) error {
+func (se *SearchesDB) updateSavedSearches(ctx context.Context, username, searches string) error {
 	var (
 		err    error
 		userID string
@@ -117,16 +118,16 @@ func (se *SearchesDB) updateSavedSearches(username, searches string) error {
 
 	query := `UPDATE ONLY user_saved_searches SET saved_searches = $2 WHERE user_id = $1`
 
-	if userID, err = queries.UserID(se.db, username); err != nil {
+	if userID, err = queries.UserID(ctx, se.db, username); err != nil {
 		return err
 	}
 
-	_, err = se.db.Exec(query, userID, searches)
+	_, err = se.db.ExecContext(ctx, query, userID, searches)
 	return err
 }
 
 // deleteSavedSearches removes the user's saved sessions from the database.
-func (se *SearchesDB) deleteSavedSearches(username string) error {
+func (se *SearchesDB) deleteSavedSearches(ctx context.Context, username string) error {
 	var (
 		err    error
 		userID string
@@ -134,10 +135,10 @@ func (se *SearchesDB) deleteSavedSearches(username string) error {
 
 	query := `DELETE FROM ONLY user_saved_searches WHERE user_id = $1`
 
-	if userID, err = queries.UserID(se.db, username); err != nil {
+	if userID, err = queries.UserID(ctx, se.db, username); err != nil {
 		return nil
 	}
 
-	_, err = se.db.Exec(query, userID)
+	_, err = se.db.ExecContext(ctx, query, userID)
 	return err
 }

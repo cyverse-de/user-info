@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -74,10 +75,10 @@ func (u *UserPreferencesApp) Greeting(writer http.ResponseWriter, r *http.Reques
 	fmt.Fprintf(writer, "Hello from user-preferences.\n")
 }
 
-func (u *UserPreferencesApp) getUserPreferencesForRequest(username string, wrap bool) ([]byte, error) {
+func (u *UserPreferencesApp) getUserPreferencesForRequest(ctx context.Context, username string, wrap bool) ([]byte, error) {
 	var retval UserPreferencesRecord
 
-	prefs, err := u.prefs.getPreferences(username)
+	prefs, err := u.prefs.getPreferences(ctx, username)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting preferences for username %s: %s", username, err)
 	}
@@ -112,6 +113,7 @@ func (u *UserPreferencesApp) GetRequest(writer http.ResponseWriter, r *http.Requ
 		err        error
 		ok         bool
 		v          = mux.Vars(r)
+		ctx        = r.Context()
 	)
 
 	if username, ok = v["username"]; !ok {
@@ -122,7 +124,7 @@ func (u *UserPreferencesApp) GetRequest(writer http.ResponseWriter, r *http.Requ
 	log.WithFields(log.Fields{
 		"service": "preferences",
 	}).Info("Getting user preferences for ", username)
-	if userExists, err = u.prefs.isUser(username); err != nil {
+	if userExists, err = u.prefs.isUser(ctx, username); err != nil {
 		badRequest(writer, fmt.Sprintf("Error checking for username %s: %s", username, err))
 		return
 	}
@@ -132,7 +134,7 @@ func (u *UserPreferencesApp) GetRequest(writer http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	jsoned, err := u.getUserPreferencesForRequest(username, false)
+	jsoned, err := u.getUserPreferencesForRequest(ctx, username, false)
 	if err != nil {
 		errored(writer, err.Error())
 	}
@@ -154,6 +156,7 @@ func (u *UserPreferencesApp) PostRequest(writer http.ResponseWriter, r *http.Req
 		err        error
 		ok         bool
 		v          = mux.Vars(r)
+		ctx        = r.Context()
 	)
 
 	if username, ok = v["username"]; !ok {
@@ -161,7 +164,7 @@ func (u *UserPreferencesApp) PostRequest(writer http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if userExists, err = u.prefs.isUser(username); err != nil {
+	if userExists, err = u.prefs.isUser(ctx, username); err != nil {
 		badRequest(writer, fmt.Sprintf("Error checking for username %s: %s", username, err))
 		return
 	}
@@ -171,7 +174,7 @@ func (u *UserPreferencesApp) PostRequest(writer http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if hasPrefs, err = u.prefs.hasPreferences(username); err != nil {
+	if hasPrefs, err = u.prefs.hasPreferences(ctx, username); err != nil {
 		errored(writer, fmt.Sprintf("Error checking preferences for user %s: %s", username, err))
 		return
 	}
@@ -190,18 +193,18 @@ func (u *UserPreferencesApp) PostRequest(writer http.ResponseWriter, r *http.Req
 
 	bodyString := string(bodyBuffer)
 	if !hasPrefs {
-		if err = u.prefs.insertPreferences(username, bodyString); err != nil {
+		if err = u.prefs.insertPreferences(ctx, username, bodyString); err != nil {
 			errored(writer, fmt.Sprintf("Error inserting preferences for user %s: %s", username, err))
 			return
 		}
 	} else {
-		if err = u.prefs.updatePreferences(username, bodyString); err != nil {
+		if err = u.prefs.updatePreferences(ctx, username, bodyString); err != nil {
 			errored(writer, fmt.Sprintf("Error updating preferences for user %s: %s", username, err))
 			return
 		}
 	}
 
-	jsoned, err := u.getUserPreferencesForRequest(username, true)
+	jsoned, err := u.getUserPreferencesForRequest(ctx, username, true)
 	if err != nil {
 		errored(writer, err.Error())
 		return
@@ -219,6 +222,7 @@ func (u *UserPreferencesApp) DeleteRequest(writer http.ResponseWriter, r *http.R
 		err        error
 		ok         bool
 		v          = mux.Vars(r)
+		ctx        = r.Context()
 	)
 
 	if username, ok = v["username"]; !ok {
@@ -226,7 +230,7 @@ func (u *UserPreferencesApp) DeleteRequest(writer http.ResponseWriter, r *http.R
 		return
 	}
 
-	if userExists, err = u.prefs.isUser(username); err != nil {
+	if userExists, err = u.prefs.isUser(ctx, username); err != nil {
 		badRequest(writer, fmt.Sprintf("Error checking for username %s: %s", username, err))
 		return
 	}
@@ -236,7 +240,7 @@ func (u *UserPreferencesApp) DeleteRequest(writer http.ResponseWriter, r *http.R
 		return
 	}
 
-	if hasPrefs, err = u.prefs.hasPreferences(username); err != nil {
+	if hasPrefs, err = u.prefs.hasPreferences(ctx, username); err != nil {
 		errored(writer, fmt.Sprintf("Error checking preferences for user %s: %s", username, err))
 		return
 	}
@@ -245,7 +249,7 @@ func (u *UserPreferencesApp) DeleteRequest(writer http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err = u.prefs.deletePreferences(username); err != nil {
+	if err = u.prefs.deletePreferences(ctx, username); err != nil {
 		errored(writer, fmt.Sprintf("Error deleting preferences for user %s: %s", username, err))
 	}
 }

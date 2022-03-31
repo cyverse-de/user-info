@@ -22,6 +22,8 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 )
 
+const serviceName = "user-info"
+
 // IplantSuffix is what is appended to a username in the database.
 const IplantSuffix = "@iplantcollaborative.org"
 
@@ -36,7 +38,7 @@ func jaegerTracerProvider(url string) (*tracesdk.TracerProvider, error) {
 		tracesdk.WithBatcher(exp),
 		tracesdk.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String("user-info"),
+			semconv.ServiceNameKey.String(serviceName),
 		)),
 	)
 

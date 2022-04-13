@@ -7,6 +7,7 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.3.0
 	github.com/cyverse-de/configurate v0.0.0-20171005230251-9b512d37328e
 	github.com/cyverse-de/dbutil v1.0.1
+	github.com/cyverse-de/go-mod/otelutils v0.0.2
 	github.com/cyverse-de/queries v1.0.1
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/hcl v0.0.0-20171017181929-23c074d0eceb // indirect
@@ -24,9 +25,6 @@ require (
 	github.com/spf13/viper v1.0.0
 	github.com/uptrace/opentelemetry-go-extra/otelsql v0.1.11 // indirect
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.30.0
-	go.opentelemetry.io/otel v1.6.1
-	go.opentelemetry.io/otel/exporters/jaeger v1.6.0
-	go.opentelemetry.io/otel/sdk v1.6.0
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 )

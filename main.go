@@ -6,44 +6,19 @@ import (
 	"flag"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/cyverse-de/configurate"
 	"github.com/cyverse-de/dbutil"
+	"github.com/cyverse-de/go-mod/otelutils"
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/jaeger"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/resource"
-	tracesdk "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 )
 
 const serviceName = "user-info"
 
 // IplantSuffix is what is appended to a username in the database.
 const IplantSuffix = "@iplantcollaborative.org"
-
-func jaegerTracerProvider(url string) (*tracesdk.TracerProvider, error) {
-	// Create the Jaeger exporter
-	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(url)))
-	if err != nil {
-		return nil, err
-	}
-
-	tp := tracesdk.NewTracerProvider(
-		tracesdk.WithBatcher(exp),
-		tracesdk.WithResource(resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceNameKey.String(serviceName),
-		)),
-	)
-
-	return tp, nil
-}
 
 func main() {
 	var (
@@ -52,8 +27,6 @@ func main() {
 		port        = flag.String("port", "60000", "The port number to listen on")
 		err         error
 		cfg         *viper.Viper
-
-		tracerProvider *tracesdk.TracerProvider
 	)
 
 	flag.Parse()
@@ -67,34 +40,10 @@ func main() {
 		log.Fatal("--config must be set")
 	}
 
-	otelTracesExporter := os.Getenv("OTEL_TRACES_EXPORTER")
-	if otelTracesExporter == "jaeger" {
-		jaegerEndpoint := os.Getenv("OTEL_EXPORTER_JAEGER_ENDPOINT")
-		if jaegerEndpoint == "" {
-			log.Warn("Jaeger set as OpenTelemetry trace exporter, but no Jaeger endpoint configured.")
-		} else {
-			tp, err := jaegerTracerProvider(jaegerEndpoint)
-			if err != nil {
-				log.Fatal(err)
-			}
-			tracerProvider = tp
-			otel.SetTracerProvider(tp)
-			otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
-		}
-	}
-
-	if tracerProvider != nil {
-		tracerCtx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		defer func(tracerContext context.Context) {
-			ctx, cancel := context.WithTimeout(tracerContext, time.Second*5)
-			defer cancel()
-			if err := tracerProvider.Shutdown(ctx); err != nil {
-				log.Fatal(err)
-			}
-		}(tracerCtx)
-	}
+	var tracerCtx, cancel = context.WithCancel(context.Background())
+	defer cancel()
+	shutdown := otelutils.TracerProviderFromEnv(tracerCtx, serviceName, func(e error) { log.Fatal(e) })
+	defer shutdown()
 
 	if cfg, err = configurate.InitDefaults(*cfgPath, configurate.JobServicesDefaults); err != nil {
 		log.Fatal(err.Error())

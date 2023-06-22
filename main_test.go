@@ -1,8 +1,9 @@
-//nolint
+// nolint
 package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -28,12 +29,12 @@ func NewMockDB() *MockDB {
 	}
 }
 
-func (m *MockDB) isUser(username string) (bool, error) {
+func (m *MockDB) isUser(ctx context.Context, username string) (bool, error) {
 	_, ok := m.users[username]
 	return ok, nil
 }
 
-func (m *MockDB) hasPreferences(username string) (bool, error) {
+func (m *MockDB) hasPreferences(ctx context.Context, username string) (bool, error) {
 	stored, ok := m.storage[username]
 	if !ok {
 		return false, nil
@@ -51,9 +52,9 @@ func (m *MockDB) hasPreferences(username string) (bool, error) {
 	return true, nil
 }
 
-func (m *MockDB) getPreferences(username string) ([]UserPreferencesRecord, error) {
+func (m *MockDB) getPreferences(ctx context.Context, username string) ([]UserPreferencesRecord, error) {
 	return []UserPreferencesRecord{
-		UserPreferencesRecord{
+		{
 			ID:          "id",
 			Preferences: m.storage[username]["user-prefs"].(string),
 			UserID:      "user-id",
@@ -61,7 +62,7 @@ func (m *MockDB) getPreferences(username string) ([]UserPreferencesRecord, error
 	}, nil
 }
 
-func (m *MockDB) insertPreferences(username, prefs string) error {
+func (m *MockDB) insertPreferences(ctx context.Context, username, prefs string) error {
 	if _, ok := m.storage[username]["user-prefs"]; !ok {
 		m.storage[username] = make(map[string]interface{})
 	}
@@ -69,11 +70,11 @@ func (m *MockDB) insertPreferences(username, prefs string) error {
 	return nil
 }
 
-func (m *MockDB) updatePreferences(username, prefs string) error {
-	return m.insertPreferences(username, prefs)
+func (m *MockDB) updatePreferences(ctx context.Context, username, prefs string) error {
+	return m.insertPreferences(ctx, username, prefs)
 }
 
-func (m *MockDB) deletePreferences(username string) error {
+func (m *MockDB) deletePreferences(ctx context.Context, username string) error {
 	delete(m.storage, username)
 	return nil
 }
@@ -202,15 +203,16 @@ func TestGetUserPreferencesForRequest(t *testing.T) {
 	mock := NewMockDB()
 	router := mux.NewRouter()
 	n := NewPrefsApp(mock, router)
+	ctx := context.Background()
 
 	expected := []byte("{\"one\":\"two\"}")
 	expectedWrapped := []byte("{\"preferences\":{\"one\":\"two\"}}")
 	mock.users["test-user"] = true
-	if err := mock.insertPreferences("test-user", string(expected)); err != nil {
+	if err := mock.insertPreferences(ctx, "test-user", string(expected)); err != nil {
 		t.Error(err)
 	}
 
-	actualWrapped, err := n.getUserPreferencesForRequest("test-user", true)
+	actualWrapped, err := n.getUserPreferencesForRequest(ctx, "test-user", true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -219,7 +221,7 @@ func TestGetUserPreferencesForRequest(t *testing.T) {
 		t.Errorf("The return value was '%s' instead of '%s'", actualWrapped, expectedWrapped)
 	}
 
-	actual, err := n.getUserPreferencesForRequest("test-user", false)
+	actual, err := n.getUserPreferencesForRequest(ctx, "test-user", false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -233,10 +235,11 @@ func TestPreferencesGetRequest(t *testing.T) {
 	mock := NewMockDB()
 	router := mux.NewRouter()
 	n := NewPrefsApp(mock, router)
+	ctx := context.Background()
 
 	expected := []byte("{\"one\":\"two\"}")
 	mock.users["test-user"] = true
-	if err := mock.insertPreferences("test-user", string(expected)); err != nil {
+	if err := mock.insertPreferences(ctx, "test-user", string(expected)); err != nil {
 		t.Error(err)
 	}
 
@@ -321,12 +324,13 @@ func TestPreferencesPostRequest(t *testing.T) {
 	mock := NewMockDB()
 	router := mux.NewRouter()
 	n := NewPrefsApp(mock, router)
+	ctx := context.Background()
 
 	username := "test-user"
 	expected := []byte(`{"one":"two"}`)
 
 	mock.users[username] = true
-	if err := mock.insertPreferences(username, string(expected)); err != nil {
+	if err := mock.insertPreferences(ctx, username, string(expected)); err != nil {
 		t.Error(err)
 	}
 
@@ -378,8 +382,9 @@ func TestPreferencesDelete(t *testing.T) {
 	mock.users[username] = true
 	router := mux.NewRouter()
 	n := NewPrefsApp(mock, router)
+	ctx := context.Background()
 
-	if err := mock.insertPreferences(username, string(expected)); err != nil {
+	if err := mock.insertPreferences(ctx, username, string(expected)); err != nil {
 		t.Error(err)
 	}
 
@@ -425,7 +430,7 @@ func TestNewPrefsDB(t *testing.T) {
 
 	prefs := NewPrefsDB(db)
 	if prefs == nil {
-		t.Error("NewPrefsDB() returned nil")
+		t.Fatal("NewPrefsDB() returned nil")
 	}
 
 	if prefs.db != db {
@@ -449,7 +454,7 @@ func TestPreferencesIsUser(t *testing.T) {
 		WithArgs("test-user").
 		WillReturnRows(sqlmock.NewRows([]string{"check_user"}).AddRow(1))
 
-	present, err := p.isUser("test-user")
+	present, err := p.isUser(context.Background(), "test-user")
 	if err != nil {
 		t.Errorf("error calling isUser(): %s", err)
 	}
@@ -479,7 +484,7 @@ func TestHasPreferences(t *testing.T) {
 		WithArgs("test-user").
 		WillReturnRows(sqlmock.NewRows([]string{""}).AddRow("1"))
 
-	hasPrefs, err := p.hasPreferences("test-user")
+	hasPrefs, err := p.hasPreferences(context.Background(), "test-user")
 	if err != nil {
 		t.Errorf("error from hasPreferences(): %s", err)
 	}
@@ -509,7 +514,7 @@ func TestGetPreferences(t *testing.T) {
 		WithArgs("test-user").
 		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "preferences"}).AddRow("1", "2", "{}"))
 
-	records, err := p.getPreferences("test-user")
+	records, err := p.getPreferences(context.Background(), "test-user")
 	if err != nil {
 		t.Errorf("error from getPreferences(): %s", err)
 	}
@@ -556,7 +561,7 @@ func TestInsertPreferences(t *testing.T) {
 		WithArgs("1", "{}").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	if err = p.insertPreferences("test-user", "{}"); err != nil {
+	if err = p.insertPreferences(context.Background(), "test-user", "{}"); err != nil {
 		t.Errorf("error inserting preferences: %s", err)
 	}
 
@@ -585,7 +590,7 @@ func TestUpdatePreferences(t *testing.T) {
 		WithArgs("1", "{}").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	if err = p.updatePreferences("test-user", "{}"); err != nil {
+	if err = p.updatePreferences(context.Background(), "test-user", "{}"); err != nil {
 		t.Errorf("error updating preferences: %s", err)
 	}
 
@@ -614,7 +619,7 @@ func TestDeletePreferences(t *testing.T) {
 		WithArgs("1").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	if err = p.deletePreferences("test-user"); err != nil {
+	if err = p.deletePreferences(context.Background(), "test-user"); err != nil {
 		t.Errorf("error deleting preferences: %s", err)
 	}
 
@@ -626,7 +631,7 @@ func TestDeletePreferences(t *testing.T) {
 // -------- End Preferences --------
 
 // -------- Start Sessions --------
-func (m *MockDB) hasSessions(username string) (bool, error) {
+func (m *MockDB) hasSessions(ctx context.Context, username string) (bool, error) {
 	stored, ok := m.storage[username]
 	if !ok {
 		return false, nil
@@ -644,9 +649,9 @@ func (m *MockDB) hasSessions(username string) (bool, error) {
 	return true, nil
 }
 
-func (m *MockDB) getSessions(username string) ([]UserSessionRecord, error) {
+func (m *MockDB) getSessions(ctx context.Context, username string) ([]UserSessionRecord, error) {
 	return []UserSessionRecord{
-		UserSessionRecord{
+		{
 			ID:      "id",
 			Session: m.storage[username]["user-sessions"].(string),
 			UserID:  "user-id",
@@ -654,7 +659,7 @@ func (m *MockDB) getSessions(username string) ([]UserSessionRecord, error) {
 	}, nil
 }
 
-func (m *MockDB) insertSession(username, session string) error {
+func (m *MockDB) insertSession(ctx context.Context, username, session string) error {
 	if _, ok := m.storage[username]["user-sessions"]; !ok {
 		m.storage[username] = make(map[string]interface{})
 	}
@@ -662,11 +667,11 @@ func (m *MockDB) insertSession(username, session string) error {
 	return nil
 }
 
-func (m *MockDB) updateSession(username, prefs string) error {
-	return m.insertSession(username, prefs)
+func (m *MockDB) updateSession(ctx context.Context, username, prefs string) error {
+	return m.insertSession(ctx, username, prefs)
 }
 
-func (m *MockDB) deleteSession(username string) error {
+func (m *MockDB) deleteSession(ctx context.Context, username string) error {
 	delete(m.storage, username)
 	return nil
 }
@@ -775,15 +780,16 @@ func TestGetUserSessionForRequest(t *testing.T) {
 	mock := NewMockDB()
 	router := mux.NewRouter()
 	n := NewSessionsApp(mock, router)
+	ctx := context.Background()
 
 	expected := []byte("{\"one\":\"two\"}")
 	expectedWrapped := []byte("{\"session\":{\"one\":\"two\"}}")
 	mock.users["test-user"] = true
-	if err := mock.insertSession("test-user", string(expected)); err != nil {
+	if err := mock.insertSession(ctx, "test-user", string(expected)); err != nil {
 		t.Error(err)
 	}
 
-	actualWrapped, err := n.getUserSessionForRequest("test-user", true)
+	actualWrapped, err := n.getUserSessionForRequest(ctx, "test-user", true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -792,7 +798,7 @@ func TestGetUserSessionForRequest(t *testing.T) {
 		t.Errorf("The return value was '%s' instead of '%s'", actualWrapped, expectedWrapped)
 	}
 
-	actual, err := n.getUserSessionForRequest("test-user", false)
+	actual, err := n.getUserSessionForRequest(ctx, "test-user", false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -806,10 +812,11 @@ func TestSessionsGetRequest(t *testing.T) {
 	mock := NewMockDB()
 	router := mux.NewRouter()
 	n := NewSessionsApp(mock, router)
+	ctx := context.Background()
 
 	expected := []byte("{\"one\":\"two\"}")
 	mock.users["test-user"] = true
-	if err := mock.insertSession("test-user", string(expected)); err != nil {
+	if err := mock.insertSession(ctx, "test-user", string(expected)); err != nil {
 		t.Error(err)
 	}
 
@@ -894,12 +901,13 @@ func TestSessionsPostRequest(t *testing.T) {
 	mock := NewMockDB()
 	router := mux.NewRouter()
 	n := NewSessionsApp(mock, router)
+	ctx := context.Background()
 
 	username := "test-user"
 	expected := []byte(`{"one":"two"}`)
 
 	mock.users[username] = true
-	if err := mock.insertSession(username, string(expected)); err != nil {
+	if err := mock.insertSession(ctx, username, string(expected)); err != nil {
 		t.Error(err)
 	}
 
@@ -951,8 +959,9 @@ func TestSessionsDelete(t *testing.T) {
 	mock.users[username] = true
 	router := mux.NewRouter()
 	n := NewSessionsApp(mock, router)
+	ctx := context.Background()
 
-	if err := mock.insertSession(username, string(expected)); err != nil {
+	if err := mock.insertSession(ctx, username, string(expected)); err != nil {
 		t.Error(err)
 	}
 
@@ -998,7 +1007,7 @@ func TestNewSessionsDB(t *testing.T) {
 
 	p := NewSessionsDB(db)
 	if p == nil {
-		t.Error("NewSessionsDB returned nil")
+		t.Fatal("NewSessionsDB returned nil")
 	}
 
 	if db != p.db {
@@ -1022,7 +1031,7 @@ func TestSessionsIsUser(t *testing.T) {
 		WithArgs("test-user").
 		WillReturnRows(sqlmock.NewRows([]string{"check_user"}).AddRow(1))
 
-	present, err := p.isUser("test-user")
+	present, err := p.isUser(context.Background(), "test-user")
 	if err != nil {
 		t.Errorf("error calling isUser(): %s", err)
 	}
@@ -1052,7 +1061,7 @@ func TestHasSessions(t *testing.T) {
 		WithArgs("test-user").
 		WillReturnRows(sqlmock.NewRows([]string{""}).AddRow("1"))
 
-	hasSessions, err := p.hasSessions("test-user")
+	hasSessions, err := p.hasSessions(context.Background(), "test-user")
 	if err != nil {
 		t.Errorf("error from hasSessions(): %s", err)
 	}
@@ -1082,7 +1091,7 @@ func TestGetSessions(t *testing.T) {
 		WithArgs("test-user").
 		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "session"}).AddRow("1", "2", "{}"))
 
-	records, err := p.getSessions("test-user")
+	records, err := p.getSessions(context.Background(), "test-user")
 	if err != nil {
 		t.Errorf("error from getSessions(): %s", err)
 	}
@@ -1129,7 +1138,7 @@ func TestInsertSession(t *testing.T) {
 		WithArgs("1", "{}").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	if err = p.insertSession("test-user", "{}"); err != nil {
+	if err = p.insertSession(context.Background(), "test-user", "{}"); err != nil {
 		t.Errorf("error inserting session: %s", err)
 	}
 
@@ -1158,7 +1167,7 @@ func TestUpdateSession(t *testing.T) {
 		WithArgs("1", "{}").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	if err = p.updateSession("test-user", "{}"); err != nil {
+	if err = p.updateSession(context.Background(), "test-user", "{}"); err != nil {
 		t.Errorf("error updating session: %s", err)
 	}
 
@@ -1187,7 +1196,7 @@ func TestDeleteSession(t *testing.T) {
 		WithArgs("1").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	if err = p.deleteSession("test-user"); err != nil {
+	if err = p.deleteSession(context.Background(), "test-user"); err != nil {
 		t.Errorf("error deleting session: %s", err)
 	}
 
@@ -1199,7 +1208,7 @@ func TestDeleteSession(t *testing.T) {
 // -------- End Sessions --------
 
 // -------- Start Searches --------
-func (m *MockDB) hasSavedSearches(username string) (bool, error) {
+func (m *MockDB) hasSavedSearches(ctx context.Context, username string) (bool, error) {
 	stored, ok := m.storage[username]
 	if !ok {
 		return false, nil
@@ -1215,16 +1224,16 @@ func (m *MockDB) hasSavedSearches(username string) (bool, error) {
 
 }
 
-func (m *MockDB) getSavedSearches(username string) ([]string, error) {
+func (m *MockDB) getSavedSearches(ctx context.Context, username string) ([]string, error) {
 	return []string{m.storage[username]["saved_searches"].(string)}, nil
 }
 
-func (m *MockDB) deleteSavedSearches(username string) error {
+func (m *MockDB) deleteSavedSearches(ctx context.Context, username string) error {
 	delete(m.storage, username)
 	return nil
 }
 
-func (m *MockDB) insertSavedSearches(username, savedSearches string) error {
+func (m *MockDB) insertSavedSearches(ctx context.Context, username, savedSearches string) error {
 	if _, ok := m.storage[username]["saved_searches"]; !ok {
 		m.storage[username] = make(map[string]interface{})
 	}
@@ -1232,8 +1241,8 @@ func (m *MockDB) insertSavedSearches(username, savedSearches string) error {
 	return nil
 }
 
-func (m *MockDB) updateSavedSearches(username, savedSearches string) error {
-	return m.insertSavedSearches(username, savedSearches)
+func (m *MockDB) updateSavedSearches(ctx context.Context, username, savedSearches string) error {
+	return m.insertSavedSearches(ctx, username, savedSearches)
 }
 
 func TestSearchesGreeting(t *testing.T) {
@@ -1273,10 +1282,11 @@ func TestSearchesGreeting(t *testing.T) {
 func TestGetSavedSearchesForRequest(t *testing.T) {
 	username := "test_user@test-domain.org"
 	expectedBody := `{"search":"fake"}`
+	ctx := context.Background()
 
 	mock := NewMockDB()
 	mock.users[username] = true
-	if err := mock.insertSavedSearches(username, expectedBody); err != nil {
+	if err := mock.insertSavedSearches(ctx, username, expectedBody); err != nil {
 		t.Error(err)
 	}
 
@@ -1364,10 +1374,11 @@ func TestPutInsertSavedSearchesForRequest(t *testing.T) {
 func TestPutUpdateSavedSearchesForRequest(t *testing.T) {
 	username := "test_user@test-domain.org"
 	expectedBody := `{"search":"fake"}`
+	ctx := context.Background()
 
 	mock := NewMockDB()
 	mock.users[username] = true
-	if err := mock.insertSavedSearches(username, expectedBody); err != nil {
+	if err := mock.insertSavedSearches(ctx, username, expectedBody); err != nil {
 		t.Error(err)
 	}
 
@@ -1462,10 +1473,11 @@ func TestPostInsertSavedSearchesForRequest(t *testing.T) {
 func TestPostUpdateSavedSearchesForRequest(t *testing.T) {
 	username := "test_user@test-domain.org"
 	expectedBody := `{"search":"fake"}`
+	ctx := context.Background()
 
 	mock := NewMockDB()
 	mock.users[username] = true
-	if err := mock.insertSavedSearches(username, expectedBody); err != nil {
+	if err := mock.insertSavedSearches(ctx, username, expectedBody); err != nil {
 		t.Error(err)
 	}
 
@@ -1510,10 +1522,11 @@ func TestPostUpdateSavedSearchesForRequest(t *testing.T) {
 func TestDeleteSavedSearchesForRequest(t *testing.T) {
 	username := "test_user@test-domain.org"
 	expectedBody := `{"search":"fake"}`
+	ctx := context.Background()
 
 	mock := NewMockDB()
 	mock.users[username] = true
-	if err := mock.insertSavedSearches(username, expectedBody); err != nil {
+	if err := mock.insertSavedSearches(ctx, username, expectedBody); err != nil {
 		t.Error(err)
 	}
 
@@ -1560,7 +1573,7 @@ func TestNewSearchesDB(t *testing.T) {
 
 	prefs := NewSearchesDB(db)
 	if prefs == nil {
-		t.Error("NewSearchesDB() returned nil")
+		t.Fatal("NewSearchesDB() returned nil")
 	}
 
 	if prefs.db != db {
@@ -1584,7 +1597,7 @@ func TestSavedSearchesIsUser(t *testing.T) {
 		WithArgs("test-user").
 		WillReturnRows(sqlmock.NewRows([]string{"check_user"}).AddRow(1))
 
-	present, err := p.isUser("test-user")
+	present, err := p.isUser(context.Background(), "test-user")
 	if err != nil {
 		t.Errorf("error calling isUser(): %s", err)
 	}
@@ -1610,7 +1623,7 @@ func TestHasSavedSearches(t *testing.T) {
 		WithArgs("test-user").
 		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
 
-	exists, err := p.hasSavedSearches("test-user")
+	exists, err := p.hasSavedSearches(context.Background(), "test-user")
 	if err != nil {
 		t.Errorf("error from hasSavedSearches(): %s", err)
 	}
@@ -1640,7 +1653,7 @@ func TestGetSavedSearches(t *testing.T) {
 		WithArgs("test-user").
 		WillReturnRows(sqlmock.NewRows([]string{"saved_searches"}).AddRow("{}"))
 
-	retval, err := p.getSavedSearches("test-user")
+	retval, err := p.getSavedSearches(context.Background(), "test-user")
 	if err != nil {
 		t.Errorf("error from getSavedSearches(): %s", err)
 	}
@@ -1678,7 +1691,7 @@ func TestInsertSavedSearches(t *testing.T) {
 		WithArgs("1", "{}").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	if err := p.insertSavedSearches("test-user", "{}"); err != nil {
+	if err := p.insertSavedSearches(context.Background(), "test-user", "{}"); err != nil {
 		t.Errorf("error inserting saved searches: %s", err)
 	}
 
@@ -1707,7 +1720,7 @@ func TestUpdateSavedSearches(t *testing.T) {
 		WithArgs("1", "{}").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	if err := p.updateSavedSearches("test-user", "{}"); err != nil {
+	if err := p.updateSavedSearches(context.Background(), "test-user", "{}"); err != nil {
 		t.Errorf("error updating saved searches: %s", err)
 	}
 
@@ -1736,7 +1749,7 @@ func TestDeleteSavedSearches(t *testing.T) {
 		WithArgs("1").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	if err := p.deleteSavedSearches("test-user"); err != nil {
+	if err := p.deleteSavedSearches(context.Background(), "test-user"); err != nil {
 		t.Errorf("error deleting saved searches: %s", err)
 	}
 

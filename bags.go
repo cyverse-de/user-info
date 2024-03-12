@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -216,7 +216,7 @@ func (b *BagsApp) AddBag(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, err.Error(), status)
 	}
 
-	if body, err = ioutil.ReadAll(request.Body); err != nil {
+	if body, err = io.ReadAll(request.Body); err != nil {
 		errored(writer, fmt.Sprintf("error reading body: %s", err))
 		return
 	}
@@ -274,7 +274,7 @@ func (b *BagsApp) UpdateBag(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if body, err = ioutil.ReadAll(request.Body); err != nil {
+	if body, err = io.ReadAll(request.Body); err != nil {
 		errored(writer, fmt.Sprintf("error reading body: %s", err))
 		return
 	}
@@ -307,7 +307,7 @@ func (b *BagsApp) UpdateDefaultBag(writer http.ResponseWriter, request *http.Req
 		http.Error(writer, err.Error(), status)
 	}
 
-	if body, err = ioutil.ReadAll(request.Body); err != nil {
+	if body, err = io.ReadAll(request.Body); err != nil {
 		errored(writer, fmt.Sprintf("error reading body: %s", err))
 		return
 	}

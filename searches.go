@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -99,7 +99,7 @@ func (s *SavedSearchesApp) PostRequest(writer http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	bodyBuffer, err := ioutil.ReadAll(r.Body)
+	bodyBuffer, err := io.ReadAll(r.Body)
 	if err != nil {
 		errored(writer, fmt.Sprintf("Error reading body: %s", err))
 		return

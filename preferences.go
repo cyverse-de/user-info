@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -80,7 +80,7 @@ func (u *UserPreferencesApp) getUserPreferencesForRequest(ctx context.Context, u
 
 	prefs, err := u.prefs.getPreferences(ctx, username)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting preferences for username %s: %s", username, err)
+		return nil, fmt.Errorf("error getting preferences for username %s: %s", username, err)
 	}
 
 	if len(prefs) >= 1 {
@@ -89,14 +89,14 @@ func (u *UserPreferencesApp) getUserPreferencesForRequest(ctx context.Context, u
 
 	response, err := convertPrefs(&retval, wrap)
 	if err != nil {
-		return nil, fmt.Errorf("Error generating response for username %s: %s", username, err)
+		return nil, fmt.Errorf("error generating response for username %s: %s", username, err)
 	}
 
 	var jsoned []byte
 	if len(response) > 0 {
 		jsoned, err = json.Marshal(response)
 		if err != nil {
-			return nil, fmt.Errorf("Error generating preferences JSON for user %s: %s", username, err)
+			return nil, fmt.Errorf("error generating preferences JSON for user %s: %s", username, err)
 		}
 	} else {
 		jsoned = []byte("{}")
@@ -180,7 +180,7 @@ func (u *UserPreferencesApp) PostRequest(writer http.ResponseWriter, r *http.Req
 	}
 
 	var checked map[string]interface{}
-	bodyBuffer, err := ioutil.ReadAll(r.Body)
+	bodyBuffer, err := io.ReadAll(r.Body)
 	if err != nil {
 		errored(writer, fmt.Sprintf("Error reading body: %s", err))
 		return

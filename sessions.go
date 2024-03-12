@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -40,7 +40,7 @@ func (u *UserSessionsApp) Greeting(writer http.ResponseWriter, r *http.Request) 
 func (u *UserSessionsApp) getUserSessionForRequest(ctx context.Context, username string, wrap bool) ([]byte, error) {
 	sessions, err := u.sessions.getSessions(ctx, username)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting sessions for username %s: %s", username, err)
+		return nil, fmt.Errorf("error getting sessions for username %s: %s", username, err)
 	}
 
 	var retval UserSessionRecord
@@ -50,14 +50,14 @@ func (u *UserSessionsApp) getUserSessionForRequest(ctx context.Context, username
 
 	response, err := convertSessions(&retval, wrap)
 	if err != nil {
-		return nil, fmt.Errorf("Error generating response for username %s: %s", username, err)
+		return nil, fmt.Errorf("error generating response for username %s: %s", username, err)
 	}
 
 	var jsoned []byte
 	if len(response) > 0 {
 		jsoned, err = json.Marshal(response)
 		if err != nil {
-			return nil, fmt.Errorf("Error generating session JSON for user %s: %s", username, err)
+			return nil, fmt.Errorf("error generating session JSON for user %s: %s", username, err)
 		}
 	} else {
 		jsoned = []byte("{}")
@@ -86,7 +86,7 @@ func (u *UserSessionsApp) GetRequest(writer http.ResponseWriter, r *http.Request
 		"service": "sessions",
 	}).Info("Getting user session for ", username)
 	if userExists, err = u.sessions.isUser(ctx, username); err != nil {
-		badRequest(writer, fmt.Sprintf("Error checking for username %s: %s", username, err))
+		badRequest(writer, fmt.Sprintf("error checking for username %s: %s", username, err))
 		return
 	}
 
@@ -126,7 +126,7 @@ func (u *UserSessionsApp) PostRequest(writer http.ResponseWriter, r *http.Reques
 	}
 
 	if userExists, err = u.sessions.isUser(ctx, username); err != nil {
-		badRequest(writer, fmt.Sprintf("Error checking for username %s: %s", username, err))
+		badRequest(writer, fmt.Sprintf("error checking for username %s: %s", username, err))
 		return
 	}
 
@@ -136,31 +136,31 @@ func (u *UserSessionsApp) PostRequest(writer http.ResponseWriter, r *http.Reques
 	}
 
 	if hasSession, err = u.sessions.hasSessions(ctx, username); err != nil {
-		errored(writer, fmt.Sprintf("Error checking session for user %s: %s", username, err))
+		errored(writer, fmt.Sprintf("error checking session for user %s: %s", username, err))
 		return
 	}
 
 	var checked map[string]interface{}
-	bodyBuffer, err := ioutil.ReadAll(r.Body)
+	bodyBuffer, err := io.ReadAll(r.Body)
 	if err != nil {
-		errored(writer, fmt.Sprintf("Error reading body: %s", err))
+		errored(writer, fmt.Sprintf("error reading body: %s", err))
 		return
 	}
 
 	if err = json.Unmarshal(bodyBuffer, &checked); err != nil {
-		errored(writer, fmt.Sprintf("Error parsing request body: %s", err))
+		errored(writer, fmt.Sprintf("error parsing request body: %s", err))
 		return
 	}
 
 	bodyString := string(bodyBuffer)
 	if !hasSession {
 		if err = u.sessions.insertSession(ctx, username, bodyString); err != nil {
-			errored(writer, fmt.Sprintf("Error inserting session for user %s: %s", username, err))
+			errored(writer, fmt.Sprintf("error inserting session for user %s: %s", username, err))
 			return
 		}
 	} else {
 		if err = u.sessions.updateSession(ctx, username, bodyString); err != nil {
-			errored(writer, fmt.Sprintf("Error updating session for user %s: %s", username, err))
+			errored(writer, fmt.Sprintf("error updating session for user %s: %s", username, err))
 			return
 		}
 	}
@@ -192,7 +192,7 @@ func (u *UserSessionsApp) DeleteRequest(writer http.ResponseWriter, r *http.Requ
 	}
 
 	if userExists, err = u.sessions.isUser(ctx, username); err != nil {
-		badRequest(writer, fmt.Sprintf("Error checking for username %s: %s", username, err))
+		badRequest(writer, fmt.Sprintf("error checking for username %s: %s", username, err))
 		return
 	}
 
@@ -202,7 +202,7 @@ func (u *UserSessionsApp) DeleteRequest(writer http.ResponseWriter, r *http.Requ
 	}
 
 	if hasSession, err = u.sessions.hasSessions(ctx, username); err != nil {
-		errored(writer, fmt.Sprintf("Error checking session for user %s: %s", username, err))
+		errored(writer, fmt.Sprintf("error checking session for user %s: %s", username, err))
 		return
 	}
 
@@ -211,6 +211,6 @@ func (u *UserSessionsApp) DeleteRequest(writer http.ResponseWriter, r *http.Requ
 	}
 
 	if err = u.sessions.deleteSession(ctx, username); err != nil {
-		errored(writer, fmt.Sprintf("Error deleting session for user %s: %s", username, err))
+		errored(writer, fmt.Sprintf("error deleting session for user %s: %s", username, err))
 	}
 }

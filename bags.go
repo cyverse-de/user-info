@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/cyverse-de/queries"
@@ -45,16 +46,11 @@ func NewBagsApp(db *sql.DB, router *mux.Router, userDomain string) *BagsApp {
 	return bagsApp
 }
 
-// AddUsernameSuffix appends the @iplantcollaborative.org string to the
+// AddUsernameSuffix appends the user domain string to the
 // username if it's not already there.
 func (b *BagsApp) AddUsernameSuffix(username string) string {
-	var retval string
-	if !strings.Contains(username, "@") {
-		retval = fmt.Sprintf("%s%s", username, IplantSuffix)
-	} else {
-		retval = username
-	}
-	return retval
+	re, _ := regexp.Compile(`@.*$`)
+	return fmt.Sprintf("%s@%s", re.ReplaceAllString(username, ""), strings.Trim(b.userDomain, "@"))
 }
 
 // Greeting prints out a greeting for the bags endpoints.

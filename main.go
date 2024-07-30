@@ -6,6 +6,7 @@ import (
 	"flag"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/cyverse-de/configurate"
 	"github.com/cyverse-de/dbutil"
@@ -18,7 +19,7 @@ import (
 const serviceName = "user-info"
 
 // IplantSuffix is what is appended to a username in the database.
-const IplantSuffix = "@iplantcollaborative.org"
+const IplantSuffix = "iplantcollaborative.org"
 
 func main() {
 	var (
@@ -68,7 +69,7 @@ func main() {
 	}
 	log.Info("Successfully pinged the database")
 
-	userDomain := cfg.GetString("users.domain")
+	userDomain := strings.Trim(cfg.GetString("users.domain"), "@")
 	if userDomain == "" {
 		userDomain = IplantSuffix
 	}

@@ -38,10 +38,10 @@ require (
 	go.opentelemetry.io/otel/metric v0.28.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.6.1 // indirect
 	go.opentelemetry.io/otel/trace v1.6.1 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
-	golang.org/x/term v0.15.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/term v0.27.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

@@ -90,7 +90,8 @@ func (a *AlertsDB) getAllAlerts(ctx context.Context) ([]GlobalAlertRecord, error
 func (a *AlertsDB) getActiveAlerts(ctx context.Context) ([]GlobalAlertRecord, error) {
 	query := `SELECT start_date, end_date, alert
 			 FROM global_alerts
-			 WHERE CURRENT_TIMESTAMP BETWEEN start_date AND end_date
+			 WHERE (start_date IS NULL OR CURRENT_TIMESTAMP >= start_date)
+			 AND CURRENT_TIMESTAMP <= end_date
 			 ORDER BY end_date ASC`
 
 	rows, err := a.db.QueryContext(ctx, query)

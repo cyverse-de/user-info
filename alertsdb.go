@@ -15,31 +15,41 @@ type GlobalAlertDBRecord struct {
 
 // GlobalAlertRecord represents a global alert for use in the service
 type GlobalAlertRecord struct {
-	StartDate time.Time
-	EndDate   time.Time
-	Alert     string
+	StartDate *time.Time `json:"start_date"`
+	EndDate   *time.Time `json:"end_date"`
+	Alert     string     `json:"alert"`
 }
 
 // ToService converts a database record to a service record
 func (dbr GlobalAlertDBRecord) ToService() GlobalAlertRecord {
-	return GlobalAlertRecord{
-		StartDate: dbr.StartDate.Time,
-		EndDate:   dbr.EndDate.Time,
-		Alert:     dbr.Alert,
+	r := GlobalAlertRecord{
+		EndDate: &dbr.EndDate.Time,
+		Alert:   dbr.Alert,
 	}
+
+	if dbr.StartDate.Valid {
+		r.StartDate = &dbr.StartDate.Time
+	}
+
+	return r
 }
 
 // ToDB converts a service record to a database record
 func (r GlobalAlertRecord) ToDB() GlobalAlertDBRecord {
-	return GlobalAlertDBRecord{
-		StartDate: sql.NullTime{Time: r.StartDate, Valid: !r.StartDate.IsZero()},
-		EndDate:   sql.NullTime{Time: r.EndDate, Valid: !r.EndDate.IsZero()},
-		Alert:     r.Alert,
+	dbr := GlobalAlertDBRecord{
+		EndDate: sql.NullTime{Time: *r.EndDate, Valid: r.EndDate != nil && !r.EndDate.IsZero()},
+		Alert:   r.Alert,
 	}
+
+	if r.StartDate != nil && !r.StartDate.IsZero() {
+		dbr.StartDate = sql.NullTime{Time: *r.StartDate, Valid: r.StartDate != nil && !r.StartDate.IsZero()}
+	}
+
+	return dbr
 }
 
 type aDB interface {
-	// DB defines the interface for interacting with the global-alerts database.
+	// aDB defines the interface for interacting with the database for alerts.
 	getAllAlerts(ctx context.Context) ([]GlobalAlertRecord, error)
 	getActiveAlerts(ctx context.Context) ([]GlobalAlertRecord, error)
 	insertAlert(ctx context.Context, alert GlobalAlertRecord) error
@@ -60,9 +70,11 @@ func NewAlertsDB(db *sql.DB) *AlertsDB {
 
 // getAllAlerts returns all alerts, whether active or not
 func (a *AlertsDB) getAllAlerts(ctx context.Context) ([]GlobalAlertRecord, error) {
-	query := `SELECT start_date, end_date, alert
-			 FROM global_alerts
-			 ORDER BY end_date ASC`
+	query := `SELECT start_date AT TIME ZONE (select current_setting('TIMEZONE')),
+                         end_date AT TIME ZONE (select current_setting('TIMEZONE')),
+			 alert
+	            FROM global_alerts
+		ORDER BY end_date ASC`
 
 	rows, err := a.db.QueryContext(ctx, query)
 	if err != nil {
@@ -88,11 +100,13 @@ func (a *AlertsDB) getAllAlerts(ctx context.Context) ([]GlobalAlertRecord, error
 
 // getActiveAlerts returns all active alerts (where current time is between start_date and end_date)
 func (a *AlertsDB) getActiveAlerts(ctx context.Context) ([]GlobalAlertRecord, error) {
-	query := `SELECT start_date, end_date, alert
-			 FROM global_alerts
-			 WHERE (start_date IS NULL OR CURRENT_TIMESTAMP >= start_date)
-			 AND CURRENT_TIMESTAMP <= end_date
-			 ORDER BY end_date ASC`
+	query := `SELECT start_date AT TIME ZONE (select current_setting('TIMEZONE')),
+                         end_date AT TIME ZONE (select current_setting('TIMEZONE')),
+			 alert
+	            FROM global_alerts
+		   WHERE (start_date IS NULL OR CURRENT_TIMESTAMP >= start_date AT TIME ZONE (SELECT current_setting('TIMEZONE')))
+		     AND (CURRENT_TIMESTAMP <= end_date AT TIME ZONE (SELECT current_setting('TIMEZONE')))
+		ORDER BY end_date ASC`
 
 	rows, err := a.db.QueryContext(ctx, query)
 	if err != nil {
@@ -120,7 +134,9 @@ func (a *AlertsDB) getActiveAlerts(ctx context.Context) ([]GlobalAlertRecord, er
 func (a *AlertsDB) insertAlert(ctx context.Context, alert GlobalAlertRecord) error {
 	dbRecord := alert.ToDB()
 	query := `INSERT INTO global_alerts (start_date, end_date, alert)
-			 VALUES ($1, $2, $3)`
+			 VALUES ($1 AT TIME ZONE (SELECT current_setting('TIMEZONE')),
+			         $2 AT TIME ZONE (SELECT current_setting('TIMEZONE')),
+				 $3)`
 
 	_, err := a.db.ExecContext(ctx, query, dbRecord.StartDate, dbRecord.EndDate, dbRecord.Alert)
 	return err

@@ -31,6 +31,10 @@ func NewAlertsApp(db aDB, router *mux.Router) *AlertsApp {
 	return alertsApp
 }
 
+type Alerts struct {
+	Alerts []GlobalAlertRecord `json:"alerts"`
+}
+
 // Greeting prints out a greeting to the writer from alerts.
 func (a *AlertsApp) Greeting(writer http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(writer, "Hello from alerts.\n")
@@ -46,7 +50,7 @@ func (a *AlertsApp) GetAllAlerts(writer http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := json.Marshal(alerts)
+	response, err := json.Marshal(Alerts{alerts})
 	if err != nil {
 		errored(writer, fmt.Sprintf("error marshaling response: %s", err))
 		return
@@ -66,7 +70,7 @@ func (a *AlertsApp) GetActiveAlerts(writer http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	response, err := json.Marshal(alerts)
+	response, err := json.Marshal(Alerts{alerts})
 	if err != nil {
 		errored(writer, fmt.Sprintf("error marshaling response: %s", err))
 		return

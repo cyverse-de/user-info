@@ -50,6 +50,10 @@ func (a *AlertsApp) GetAllAlerts(writer http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if alerts == nil {
+		alerts = []GlobalAlertRecord{}
+	}
+
 	response, err := json.Marshal(Alerts{alerts})
 	if err != nil {
 		errored(writer, fmt.Sprintf("error marshaling response: %s", err))
@@ -68,6 +72,10 @@ func (a *AlertsApp) GetActiveAlerts(writer http.ResponseWriter, r *http.Request)
 	if err != nil {
 		errored(writer, fmt.Sprintf("error getting active alerts: %s", err))
 		return
+	}
+
+	if alerts == nil {
+		alerts = []GlobalAlertRecord{}
 	}
 
 	response, err := json.Marshal(Alerts{alerts})

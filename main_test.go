@@ -1955,7 +1955,11 @@ func TestGetAllAlerts(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"start_date", "end_date", "alert"}).
 		AddRow(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), "test alert")
 
-	mock.ExpectQuery("SELECT start_date, end_date, alert FROM global_alerts").
+	mock.ExpectQuery(`SELECT start_date AT TIME ZONE \(select current_setting\('TIMEZONE'\)\),
+						 end_date AT TIME ZONE \(select current_setting\('TIMEZONE'\)\),
+			 alert
+				FROM global_alerts
+		ORDER BY end_date ASC`).
 		WillReturnRows(rows)
 
 	server := httptest.NewServer(alertsApp.router)
@@ -1971,18 +1975,19 @@ func TestGetAllAlerts(t *testing.T) {
 		t.Errorf("Expected status OK but got %v", res.StatusCode)
 	}
 
-	var alerts []GlobalAlertRecord
+	var alerts Alerts
 	err = json.NewDecoder(res.Body).Decode(&alerts)
+	res.Body.Close()
 	if err != nil {
 		t.Error(err)
 	}
 
-	if len(alerts) != 1 {
-		t.Errorf("Expected 1 alert but got %d", len(alerts))
+	if len(alerts.Alerts) != 1 {
+		t.Errorf("Expected 1 alert but got %d", len(alerts.Alerts))
 	}
 
-	if alerts[0].Alert != "test alert" {
-		t.Errorf("Expected alert text 'test alert' but got '%s'", alerts[0].Alert)
+	if alerts.Alerts[0].Alert != "test alert" {
+		t.Errorf("Expected alert text 'test alert' but got '%s'", alerts.Alerts[0].Alert)
 	}
 }
 
@@ -2003,9 +2008,12 @@ func TestCreateAlert(t *testing.T) {
 	server := httptest.NewServer(alertsApp.router)
 	defer server.Close()
 
+	now := time.Now()
+	future := time.Now().Add(24 * time.Hour)
+
 	alert := GlobalAlertRecord{
-		StartDate: time.Now(),
-		EndDate:   time.Now().Add(24 * time.Hour),
+		StartDate: &now,
+		EndDate:   &future,
 		Alert:     "test alert",
 	}
 

@@ -87,10 +87,14 @@ func main() {
 
 	bagsApp := NewBagsApp(db, router, userDomain)
 
+	alertsDB := NewAlertsDB(db)
+	alertsApp := NewAlertsApp(alertsDB, router)
+
 	log.Debug(prefsApp)
 	log.Debug(sessionsApp)
 	log.Debug(searchesApp)
 	log.Debug(bagsApp)
+	log.Debug(alertsApp)
 
 	log.Info("Listening on port ", *port)
 	log.Fatal(http.ListenAndServe(fixAddr(*port), router))

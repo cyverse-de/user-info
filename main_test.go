@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/gorilla/mux"
@@ -1938,5 +1939,142 @@ func TestRootGreeting(t *testing.T) {
 
 	if actualStatus != expectedStatus {
 		t.Errorf("Status code was %d but should have been %d", actualStatus, expectedStatus)
+	}
+}
+
+func TestGetAllAlerts(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	router := mux.NewRouter()
+	alertsApp := NewAlertsApp(NewAlertsDB(db), router)
+
+	rows := sqlmock.NewRows([]string{"start_date", "end_date", "alert"}).
+		AddRow(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), "test alert")
+
+	mock.ExpectQuery(`SELECT start_date AT TIME ZONE \(select current_setting\('TIMEZONE'\)\),
+						 end_date AT TIME ZONE \(select current_setting\('TIMEZONE'\)\),
+			 alert
+				FROM global_alerts
+		ORDER BY end_date ASC`).
+		WillReturnRows(rows)
+
+	server := httptest.NewServer(alertsApp.router)
+	defer server.Close()
+
+	url := fmt.Sprintf("%s/%s", server.URL, "alerts/all")
+	res, err := http.Get(url)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("Expected status OK but got %v", res.StatusCode)
+	}
+
+	var alerts Alerts
+	err = json.NewDecoder(res.Body).Decode(&alerts)
+	res.Body.Close()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(alerts.Alerts) != 1 {
+		t.Errorf("Expected 1 alert but got %d", len(alerts.Alerts))
+	}
+
+	if alerts.Alerts[0].Alert != "test alert" {
+		t.Errorf("Expected alert text 'test alert' but got '%s'", alerts.Alerts[0].Alert)
+	}
+}
+
+func TestCreateAlert(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	router := mux.NewRouter()
+	alertsApp := NewAlertsApp(NewAlertsDB(db), router)
+
+	mock.ExpectExec("INSERT INTO global_alerts").
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "test alert").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	server := httptest.NewServer(alertsApp.router)
+	defer server.Close()
+
+	now := time.Now()
+	future := time.Now().Add(24 * time.Hour)
+
+	alert := GlobalAlertRecord{
+		StartDate: &now,
+		EndDate:   &future,
+		Alert:     "test alert",
+	}
+
+	body, err := json.Marshal(alert)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	url := fmt.Sprintf("%s/%s", server.URL, "alerts/")
+	res, err := http.Post(url, "application/json", bytes.NewBuffer(body))
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res.StatusCode != http.StatusCreated {
+		t.Errorf("Expected status Created but got %v", res.StatusCode)
+	}
+}
+
+func TestDeleteAlert(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	router := mux.NewRouter()
+	alertsApp := NewAlertsApp(NewAlertsDB(db), router)
+
+	mock.ExpectExec("DELETE FROM ONLY global_alerts").
+		WithArgs(sqlmock.AnyArg(), "test alert").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	server := httptest.NewServer(alertsApp.router)
+	defer server.Close()
+
+	params := struct {
+		EndDate time.Time `json:"end_date"`
+		Alert   string    `json:"alert"`
+	}{
+		EndDate: time.Now(),
+		Alert:   "test alert",
+	}
+
+	body, err := json.Marshal(params)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	url := fmt.Sprintf("%s/%s", server.URL, "alerts/")
+	req, err := http.NewRequest(http.MethodDelete, url, bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("Expected status OK but got %v", res.StatusCode)
 	}
 }

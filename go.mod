@@ -1,8 +1,6 @@
 module github.com/cyverse-de/user-info
 
-go 1.23.0
-
-toolchain go1.24.1
+go 1.21
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2

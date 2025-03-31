@@ -28,6 +28,11 @@ func NewAlertsApp(db aDB, router *mux.Router) *AlertsApp {
 	alertsApp.router.HandleFunc("/alerts/all", alertsApp.GetAllAlerts).Methods("GET")
 	alertsApp.router.HandleFunc("/alerts/", alertsApp.CreateAlert).Methods("POST")
 	alertsApp.router.HandleFunc("/alerts/", alertsApp.DeleteAlert).Methods("DELETE")
+
+	// also without slash
+	alertsApp.router.HandleFunc("/alerts", alertsApp.Greeting).Methods("GET")
+	alertsApp.router.HandleFunc("/alerts", alertsApp.CreateAlert).Methods("POST")
+	alertsApp.router.HandleFunc("/alerts", alertsApp.DeleteAlert).Methods("DELETE")
 	return alertsApp
 }
 

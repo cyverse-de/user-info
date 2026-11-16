@@ -65,7 +65,7 @@ func (p *PrefsDB) getPreferences(ctx context.Context, username string) ([]UserPr
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var prefs []UserPreferencesRecord
 	for rows.Next() {

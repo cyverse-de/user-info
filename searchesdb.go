@@ -75,7 +75,7 @@ func (se *SearchesDB) getSavedSearches(ctx context.Context, username string) ([]
 	if rows, err = se.db.QueryContext(ctx, query, username); err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	for rows.Next() {
 		var search string

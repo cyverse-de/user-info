@@ -34,7 +34,7 @@ func NewSessionsApp(db sDB, router *mux.Router) *UserSessionsApp {
 
 // Greeting prints out a greeting to the writer from user-sessions.
 func (u *UserSessionsApp) Greeting(writer http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(writer, "Hello from user-sessions.\n")
+	_, _ = fmt.Fprintf(writer, "Hello from user-sessions.\n")
 }
 
 func (u *UserSessionsApp) getUserSessionForRequest(ctx context.Context, username string, wrap bool) ([]byte, error) {

@@ -42,7 +42,7 @@ type Alerts struct {
 
 // Greeting prints out a greeting to the writer from alerts.
 func (a *AlertsApp) Greeting(writer http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(writer, "Hello from alerts.\n")
+	_, _ = fmt.Fprintf(writer, "Hello from alerts.\n")
 }
 
 // GetAllAlerts handles returning all alerts

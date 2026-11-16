@@ -61,7 +61,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	log.Info("Connected to the database.")
 
 	if err := db.Ping(); err != nil {

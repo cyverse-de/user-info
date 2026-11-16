@@ -80,7 +80,7 @@ func (a *AlertsDB) getAllAlerts(ctx context.Context) ([]GlobalAlertRecord, error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var alerts []GlobalAlertRecord
 	for rows.Next() {
@@ -112,7 +112,7 @@ func (a *AlertsDB) getActiveAlerts(ctx context.Context) ([]GlobalAlertRecord, er
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var alerts []GlobalAlertRecord
 	for rows.Next() {

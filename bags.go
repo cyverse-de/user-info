@@ -55,7 +55,7 @@ func (b *BagsApp) AddUsernameSuffix(username string) string {
 
 // Greeting prints out a greeting for the bags endpoints.
 func (b *BagsApp) Greeting(writer http.ResponseWriter, request *http.Request) {
-	fmt.Fprintf(writer, "Hello from the bags handler")
+	_, _ = fmt.Fprintf(writer, "Hello from the bags handler")
 }
 
 func (b *BagsApp) getUser(ctx context.Context, vars map[string]string) (string, int, error) {

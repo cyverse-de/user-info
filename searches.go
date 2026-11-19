@@ -34,7 +34,7 @@ func NewSearchesApp(db seDB, router *mux.Router) *SavedSearchesApp {
 
 // Greeting prints out a greeting to the writer from saved-searches.
 func (s *SavedSearchesApp) Greeting(writer http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(writer, "Hello from saved-searches.\n")
+	_, _ = fmt.Fprintf(writer, "Hello from saved-searches.\n")
 }
 
 // GetRequest handles writing out a user's saved searches as a response.
@@ -70,11 +70,11 @@ func (s *SavedSearchesApp) GetRequest(writer http.ResponseWriter, r *http.Reques
 	}
 
 	if len(searches) < 1 {
-		fmt.Fprintf(writer, "{}")
+		_, _ = fmt.Fprintf(writer, "{}")
 		return
 	}
 
-	fmt.Fprintf(writer, searches[0])
+	_, _ = fmt.Fprint(writer, searches[0])
 }
 
 // PutRequest handles creating new user saved searches.

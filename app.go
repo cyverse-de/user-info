@@ -74,7 +74,7 @@ func makeRouter() *mux.Router {
 	router.Use(otelmux.Middleware(serviceName))
 	router.Handle("/debug/vars", http.DefaultServeMux)
 	router.HandleFunc("/", func(writer http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(writer, "Hello from user-info.\n")
+		_, _ = fmt.Fprintf(writer, "Hello from user-info.\n")
 	}).Methods("GET")
 
 	return router

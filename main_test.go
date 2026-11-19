@@ -427,7 +427,7 @@ func TestNewPrefsDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error occurred creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	prefs := NewPrefsDB(db)
 	if prefs == nil {
@@ -444,7 +444,7 @@ func TestPreferencesIsUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewPrefsDB(db)
 	if p == nil {
@@ -474,7 +474,7 @@ func TestHasPreferences(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewPrefsDB(db)
 	if p == nil {
@@ -504,7 +504,7 @@ func TestGetPreferences(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewPrefsDB(db)
 	if p == nil {
@@ -547,7 +547,7 @@ func TestInsertPreferences(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewPrefsDB(db)
 	if p == nil {
@@ -576,7 +576,7 @@ func TestUpdatePreferences(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewPrefsDB(db)
 	if p == nil {
@@ -605,7 +605,7 @@ func TestDeletePreferences(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewPrefsDB(db)
 	if p == nil {
@@ -1004,7 +1004,7 @@ func TestNewSessionsDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewSessionsDB(db)
 	if p == nil {
@@ -1021,7 +1021,7 @@ func TestSessionsIsUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewSessionsDB(db)
 	if p == nil {
@@ -1051,7 +1051,7 @@ func TestHasSessions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewSessionsDB(db)
 	if p == nil {
@@ -1081,7 +1081,7 @@ func TestGetSessions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewSessionsDB(db)
 	if p == nil {
@@ -1124,7 +1124,7 @@ func TestInsertSession(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewSessionsDB(db)
 	if p == nil {
@@ -1153,7 +1153,7 @@ func TestUpdateSession(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewSessionsDB(db)
 	if p == nil {
@@ -1182,7 +1182,7 @@ func TestDeleteSession(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewSessionsDB(db)
 	if p == nil {
@@ -1570,7 +1570,7 @@ func TestNewSearchesDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error occurred creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	prefs := NewSearchesDB(db)
 	if prefs == nil {
@@ -1587,7 +1587,7 @@ func TestSavedSearchesIsUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewSearchesDB(db)
 	if p == nil {
@@ -1613,7 +1613,7 @@ func TestHasSavedSearches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewSearchesDB(db)
 	if p == nil {
@@ -1643,7 +1643,7 @@ func TestGetSavedSearches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewSearchesDB(db)
 	if p == nil {
@@ -1677,7 +1677,7 @@ func TestInsertSavedSearches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewSearchesDB(db)
 	if p == nil {
@@ -1706,7 +1706,7 @@ func TestUpdateSavedSearches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewSearchesDB(db)
 	if p == nil {
@@ -1735,7 +1735,7 @@ func TestDeleteSavedSearches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating the mock db: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	p := NewSearchesDB(db)
 	if p == nil {
@@ -1947,7 +1947,7 @@ func TestGetAllAlerts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	router := mux.NewRouter()
 	alertsApp := NewAlertsApp(NewAlertsDB(db), router)
@@ -1996,7 +1996,7 @@ func TestCreateAlert(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	router := mux.NewRouter()
 	alertsApp := NewAlertsApp(NewAlertsDB(db), router)
@@ -2038,7 +2038,7 @@ func TestDeleteAlert(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	router := mux.NewRouter()
 	alertsApp := NewAlertsApp(NewAlertsDB(db), router)
